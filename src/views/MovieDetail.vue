@@ -26,7 +26,6 @@ export default {
 
     mounted() {
         if (!this.selectedMovie.id) {
-            console.log(!this.selectedMovie.id)
             this.$router.push('/');
         }
     },

@@ -1,12 +1,17 @@
 <template>
     <div class="home">
         <form
-            @submit.prevent="searchMovies()"
+            @submit.prevent="setSearchedMovies()"
             class="search-form">
+          <div class="input-wrapper">
             <input
                 class="search-input"
                 placeholder="Search for a movie"
-                v-model="searchedKeyword">
+                v-model="searchedKeyword"
+                @input="getQuickSearchMovies()">
+            <QuickSearch
+                v-if="quickSearchMovies.length > 0"
+                :movies="quickSearchMovies.slice(0, 5)"/>
             <button
                 type="submit"
                 class="search-submit">Search</button>
@@ -14,83 +19,73 @@
                 type="reset"
                 class="search-reset"
                 @click="resetMovies()">Reset</button>
+          </div>
         </form>
-        <MovieCard :movies="movies"/>
     </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { ref } from 'vue';
-import { mapState } from "vuex"
-import { API_URL, API_TOKEN } from '../env.js';
-import MovieCard from '../components/MovieCard.vue';
+import { API_TOKEN } from '../env.js';
+import QuickSearch from '../components/QuickSearch.vue';
 
 
 export default {
-    computed: mapState({
-        movies: 'movies',
-    }),
-
     data () {
         return {
             searchedKeyword: ref(''),
+            quickSearchMovies: [],
         }
     },
 
     components: {
-        MovieCard,
+      QuickSearch,
     },
 
     methods: {
-        async getPopularMovies () {
+        async getMovies () {
             const movieData = await
-                axios.get('https://api.themoviedb.org/3/trending/all/day', {
-                    params: {
-                        api_key: API_TOKEN
+                axios.get('https://api.themoviedb.org/3/search/movie', {
+                params: {
+                    page: 1,
+                    query: this.searchedKeyword,
+                    api_key: API_TOKEN
                     }
                 });
 
-            this.$store.commit('setMovies', movieData?.data?.results);
+            return movieData?.data?.results;
         },
 
-        async searchMovies () {
-            if (this.searchedKeyword !== '') {
-                const movieData = await
-                    axios.get('https://api.themoviedb.org/3/search/movie', {
-                    params: {
-                        page: 1,
-                        query: this.searchedKeyword,
-                        api_key: API_TOKEN
-                        }
-                    });
+      async setSearchedMovies () {
+          const searchedMovies = await this.getMovies();
 
-                this.$store.commit('setMovies', movieData?.data?.results);
-            } else {
-                await this.resetMovies();
+          this.searchedKeyword = '';
+          this.quickSearchMovies = [];
+
+          this.$store.commit('setMovies', searchedMovies);
+      },
+
+        async getQuickSearchMovies () {
+            if (this.searchedKeyword.length === 0) {
+              this.quickSearchMovies = [];
+            } else if (this.searchedKeyword.length % 2 === 0) {
+                this.quickSearchMovies = await this.getMovies();
             }
+
+            return this.quickSearchMovies;
         },
 
         async resetMovies () {
-            await this.getPopularMovies();
-
             this.searchedKeyword = '';
+            this.quickSearchMovies = [];
         },
     },
-
-    mounted() {
-        this.getPopularMovies();
-    },
-
-
 }
 </script>
 
 <style lang="scss">
     .home {
-        display: flex;
-        flex-wrap: wrap;
-
         .search-form {
             width: 100%;
             text-align: center;
@@ -100,26 +95,30 @@ export default {
             align-items: center;
             justify-content: center;
 
+          .input-wrapper {
+            position: relative;
+
             .search-input {
-                width: 300px;
-                height: 40px;
-                font-size: 20px;
-                border: unset;
-                outline: unset;
-                padding-left: 3px;
+              width: 300px;
+              height: 40px;
+              font-size: 20px;
+              border: unset;
+              outline: unset;
+              padding-left: 3px;
             }
 
             .search-input::placeholder {
-                font-size: 20px;
+              font-size: 20px;
             }
 
             .search-submit,
             .search-reset {
-                margin-left: 20px;
-                width: 100px;
-                height: 40px;
-                font-size: 20px;
+              margin-left: 20px;
+              width: 100px;
+              height: 40px;
+              font-size: 20px;
             }
+          }
         }
     }
 </style>

@@ -30,7 +30,7 @@ const store = createStore({
         },
 
         deleteFavoriteMovie (state, movie) {
-            var deletedMovieList = state.favoriteMovies.filter(favoriteMovie => favoriteMovie.id !== movie.id);
+            const deletedMovieList = state.favoriteMovies.filter(favoriteMovie => favoriteMovie.id !== movie.id);
 
             state.favoriteMovies = deletedMovieList;
         },
